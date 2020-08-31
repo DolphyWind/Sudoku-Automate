@@ -1,6 +1,8 @@
 from ppadb.client import Client
 from PIL import Image
 import io
+import os
+from datetime import datetime
 import sudoku_solver
 import time
 
@@ -10,6 +12,8 @@ grid_topleft = (21, 321)                   # Game grid's top left coord
 grid_bottomright = (1058, 1358)            # Game grid's bottom right coord
 answer1_pos = (90, 1650)                   # Position of the first answer button
 answer_dist = 115                          # Distance between two answer buttons
+
+debug_folder_suffix = datetime.now().strftime("%d-%m-%Y %H-%M-%S")
 
 # Connect device via adb
 def connect():
@@ -22,16 +26,18 @@ def connect():
 
 # Take screenshot
 def takeScreenshot(device, save=False):
+    global debug_folder_suffix
     image = device.screencap()
     image = Image.open(io.BytesIO(image))
     if save:
-        image.save('screenshot.png')
+        image.save('debug/Images {}/screenshot.png'.format(debug_folder_suffix))
     return image
 
 # Get lines from picture grid
 def getLines(pic_grid: Image, save=False):
     global line_length
     global square_width, square_height
+    global debug_folder_suffix
     line_list = list()
     for i in range(9):
         left = 0
@@ -40,7 +46,11 @@ def getLines(pic_grid: Image, save=False):
         bottom = top + square_height
         line = pic_grid.crop((left, top, right, bottom))
         if save:
-            line.save('lines/line_{}.png'.format(i))
+            try:
+                os.mkdir("debug/Images {}/lines".format(debug_folder_suffix))
+            except FileExistsError:
+                pass
+            line.save('debug/Images {}/lines/line_{}.png'.format(debug_folder_suffix, i))
         line_list.append(line)
     return line_list
 
@@ -48,6 +58,7 @@ def getLines(pic_grid: Image, save=False):
 def getSquares(line: Image, suffix='', save=False):
     global line_length
     global square_width, square_height
+    global debug_folder_suffix
     square_list = list()
     for i in range(9):
         left = i * square_width + sum(line_length[:i]) + line_length[i]
@@ -56,7 +67,11 @@ def getSquares(line: Image, suffix='', save=False):
         bottom = square_height
         square = line.crop((left, top, right, bottom))
         if save:
-            square.save('squares/square_{}_{}.png'.format(suffix, i))
+            try:
+                os.mkdir("debug/Images {}/squares".format(debug_folder_suffix))
+            except FileExistsError:
+                pass
+            square.save('debug/Images {}/squares/square_{}_{}.png'.format(debug_folder_suffix, suffix, i))
         square_list.append(square)
     return square_list
 
@@ -95,9 +110,23 @@ def main():
     global square_width, square_height
     global grid_topleft, grid_bottomright
     global answer1_pos, answer_dist
+    global debug_folder_suffix
+    
+    # Create debug folder, if it's not exists
+    try:
+        os.mkdir("debug")
+    except FileExistsError:
+        pass
 
     # debug value: when set to True, all squares, lines etc. will be saved on thisk
     debug = True
+    
+    # If debug is enabled, create folder to save our images
+    if debug:
+        try:
+            os.mkdir("debug/Images {}".format(debug_folder_suffix))
+        except FileExistsError:
+            pass
 
     t0 = time.time()
 
@@ -112,7 +141,7 @@ def main():
     # Crop grid from screenshot
     picture_grid = screenshot.crop((grid_topleft[0], grid_topleft[1], grid_bottomright[0], grid_bottomright[1]))
     if debug:
-        picture_grid.save('grid.png')
+        picture_grid.save('debug/Images {}/grid.png'.format(debug_folder_suffix))
 
     # find lines
     lines = getLines(picture_grid, save=debug)
@@ -120,7 +149,7 @@ def main():
     # Convert picture grid to list grid
     grid = list()
     for i in range(9):
-        squares = getSquares(lines[i], save=debug)
+        squares = getSquares(lines[i], suffix=i, save=debug)
         line = list()
         for square in squares:
             n = proccessSquare(square)
