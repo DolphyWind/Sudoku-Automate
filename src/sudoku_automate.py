@@ -13,7 +13,7 @@ grid_bottomright = (1058, 1358)            # Game grid's bottom right coord
 answer1_pos = (90, 1650)                   # Position of the first answer button
 answer_dist = 115                          # Distance between two answer buttons
 
-debug_folder_suffix = datetime.now().strftime("%d-%m-%Y %H-%M-%S")
+debug_folder_suffix = datetime.now().strftime("%d-%m-%Y %H.%M.%S")
 
 # Connect device via adb
 def connect():
