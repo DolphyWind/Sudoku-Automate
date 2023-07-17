@@ -3,8 +3,9 @@ from PIL import Image
 import io
 import os
 from datetime import datetime
-import sudoku_solver
+from sudoku_solver import SudokuSolver
 import time
+import pytesseract
 
 line_length = (0, 1, 2, 6, 1, 2, 6, 1, 2)  # Length of the lines between squares
 square_width, square_height = 113, 113     # square size
@@ -77,6 +78,8 @@ def getSquares(line: Image, suffix='', save=False):
 
 # Convert picture square to number
 def proccessSquare(square: Image):
+    return int(pytesseract.image_to_string(square, config='--psm 6'))
+
     square = square.convert('RGB')
     control = lambda x, y: square.getpixel((x, y)) == (33, 33, 33)
     def controlmany(*args):
@@ -160,8 +163,8 @@ def main():
     print('Solving...')
 
     # Solve
-    sudoku_solver.solve(grid)
-    result = sudoku_solver.result
+    results = SudokuSolver.solve(grid)
+    result = results[0]
 
     print('Solved! ({} seconds elapsed)'.format(round(time.time() - t0, 2)))
     print('Solving the sudoku on your phone...')
@@ -174,8 +177,7 @@ def main():
                 tap_y = grid_topleft[1] + y * square_height + line_length[y] + square_height // 2
                 my_device.shell('input tap {} {}'.format(tap_x, tap_y))
                 answer = result[y, x]
-                answer = answer - 1
-                my_device.shell('input tap {} {}'.format(answer1_pos[0] + answer * answer_dist, answer1_pos[1]))
+                my_device.shell('input tap {} {}'.format(answer1_pos[0] + (answer - 1) * answer_dist, answer1_pos[1]))
     print('Done!')
     print('Total time: {} seconds'.format(round(time.time() - t0, 2)))
 
