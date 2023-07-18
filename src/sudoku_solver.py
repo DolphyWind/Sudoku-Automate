@@ -1,4 +1,3 @@
-import numpy as np
 import copy
 
 
@@ -72,7 +71,8 @@ class SudokuSolver:
         """
         SudokuSolver.__result = []
         SudokuSolver.__solve(grid.copy())
-        return SudokuSolver.__result.copy()
+
+        return copy.deepcopy(SudokuSolver.__result)
 
 
 if __name__ == "__main__":
@@ -92,16 +92,26 @@ if __name__ == "__main__":
         [7, 0, 3,     0, 1, 8,     0, 0, 0],
     ]
 
+    def print_board(board):
+        for i, line in enumerate(board):
+            for j, n in enumerate(line):
+                print(n, '', end='')
+                if j in (2, 5):
+                    print(' ', end='')
+            if i in (2, 5):
+                print()
+            print()
+
     results = SudokuSolver.solve(grid1)
     output_char_len = 40
 
     print(" ORIGINAL BOARD ".center(output_char_len, '-'))
-    print(np.matrix(grid1))  # For pretty printing
+    print_board(grid1)  # For pretty printing
     print("-" * output_char_len)
     print(f"Number of solutions: {len(results)}")
     print("-" * output_char_len)
 
     for i, result in enumerate(results, start=1):
         print(f"Solution #{i}")
-        print(np.matrix(result))
+        print_board(result)
         print("-" * output_char_len)
