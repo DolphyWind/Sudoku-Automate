@@ -197,6 +197,9 @@ class SudokuAutomator:
         
         return board_data
     
+    def crop_image(self, img: Image.Image, x: int, y: int, width: int, height: int) -> Image.Image:
+        return img.crop((x, y, x + width, y + height))
+    
     def run(self) -> None:
         """Runs the Automator"""
         time: float = 0.0
@@ -221,6 +224,16 @@ class SudokuAutomator:
                         "Board analyzed!",
                         self, screenshot
                         )
+        
+        if self.debug:
+            time, img = time_function(
+                SudokuAutomator.crop_image,
+                time,
+                "Cropping grid...",
+                "Cropped grid!",
+                self, screenshot, board_data["board_x"], board_data["board_y"], board_data["board_width"], board_data["board_height"]
+            )
+            img.save(f"{self.total_debug_path}/grid.png")
         
 
 if __name__ == "__main__":
