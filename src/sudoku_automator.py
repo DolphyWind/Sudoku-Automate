@@ -12,6 +12,7 @@ import json
 import cv2
 import numpy as np
 from sklearn.cluster import KMeans
+from skimage.metrics import structural_similarity as ssim
 import warnings
 warnings.filterwarnings('ignore', message='Number of distinct clusters*')
 
@@ -48,7 +49,10 @@ class SudokuAutomator:
         self.debug: bool = debug
         self.device: Device = None
         self.total_debug_path: str = ""
+        self.number_squares: list[np.ndarray] = []
+        
         self.createDebugFolders()
+        self.load_number_squares()
 
     def createDebugFolders(self) -> None:
         """Creates the debug folders if debugging is enabled"""
@@ -62,6 +66,12 @@ class SudokuAutomator:
         
         pathlib.Path(f"./{debugFoldername}").mkdir(exist_ok=True)
         pathlib.Path(self.total_debug_path).mkdir(exist_ok=True, parents=True)    
+
+    def load_number_squares(self) -> None:
+        self.number_squares: list[np.ndarray] = []
+        for i in range(1, 10):
+            img = cv2.imread(f"./number_squares/{i}.png")
+            self.number_squares.append(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
 
     def connectToPhone(self) -> None:
         """Connects your phone via adb"""
@@ -254,6 +264,23 @@ class SudokuAutomator:
                     square.save(f"{self.total_debug_path}/squares/square_{y}_{x}.png")
         
         return copy.deepcopy(squares)
+    
+    def get_empty_squares(self, board: list[list[int]]) -> list[tuple[int, int]]:
+        """Get indexes of empty squares on board
+
+        Args:
+            board (list[list[int]]): Board to process
+
+        Returns:
+            list[tuple[int, int]]: Indexes of empty squares
+        """
+        indexes: list[tuple[int, int]] = []
+        for y in range(0, 9):
+            for x in range(0, 9):
+                if board[y][x] == 0:
+                    indexes.append((x, y))
+        
+        return indexes
 
     def square_to_int(self, square_img: Image.Image) -> int:
         """Extract the number from square image. 
@@ -292,9 +319,14 @@ class SudokuAutomator:
                     opencv_image[y, x] = primary_color
                 else:
                     opencv_image[y, x] = secondary_color
-        # import random
-        # cv2.imwrite(f"./{self.total_debug_path}/square_{random.randint(0, 99999)}.png", opencv_image)       
-        return 1
+        
+        gray_img = cv2.cvtColor(opencv_image, cv2.COLOR_RGB2GRAY)
+        ssim_list: list[int] = []
+        for i in range(0, 9):
+            result = ssim(gray_img, self.number_squares[i])
+            ssim_list.append(result)
+        
+        return ssim_list.index(max(ssim_list)) + 1
     
     def squares_to_board(self, squares: list[Image.Image]) -> list[list[int]]:
         """Convert list of square images to board
@@ -358,8 +390,32 @@ class SudokuAutomator:
             self, screenshot, board_data
         )
         
-        print(np.matrix(self.squares_to_board(squares)))
+        time, board = time_function(
+            SudokuAutomator.squares_to_board,
+            time,
+            "Converting images to board...",
+            "Converted images to board!",
+            self, squares
+        )
         
+        time, empty_squares = time_function(
+            SudokuAutomator.get_empty_squares,
+            time,
+            "Getting empty squares...",
+            "Got empty squares!",
+            self, board
+        )
+        
+        time, solved_boards = time_function(
+            SudokuSolver.solve,
+            time,
+            "Solving the board...",
+            "Solved the board!",
+            board
+        )
+        print(f"Found {len(solved_boards)} solutions.")
+        
+
 
 if __name__ == "__main__":
     try:
