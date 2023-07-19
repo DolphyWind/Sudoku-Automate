@@ -6,10 +6,14 @@ import io
 import datetime
 from sudoku_solver import SudokuSolver
 import time
-import pytesseract
 import readline
 import copy
 import json
+import cv2
+import numpy as np
+from sklearn.cluster import KMeans
+import warnings
+warnings.filterwarnings('ignore', message='Number of distinct clusters*')
 
 
 def time_function(func,
@@ -250,6 +254,66 @@ class SudokuAutomator:
                     square.save(f"{self.total_debug_path}/squares/square_{y}_{x}.png")
         
         return copy.deepcopy(squares)
+
+    def square_to_int(self, square_img: Image.Image) -> int:
+        """Extract the number from square image. 
+
+        Args:
+            square_img (Image.Image): Image to process
+
+        Returns:
+            int: The number on the square
+        """
+        primary_color = (255, 255, 255, 255)
+        secondary_color = (0, 0, 0, 255)
+        
+        opencv_image = np.array(square_img)
+        reshaped_image = cv2.cvtColor(opencv_image, cv2.COLOR_RGBA2RGB).reshape(-1, 3)
+        
+        if (reshaped_image == reshaped_image[0]).all() == 1:
+            return 0
+        
+        kmeans = KMeans(n_clusters=2, n_init='auto')
+        kmeans.fit(reshaped_image)
+        
+        primary_number = 0
+        labels = kmeans.labels_
+        unique_labels, counts = np.unique(labels, return_counts=True)
+        
+        if counts[0] > counts[1]:
+            primary_number = unique_labels[0]
+        else:
+            primary_number = unique_labels[1]
+        
+        labels = labels.reshape(opencv_image.shape[0], opencv_image.shape[1])
+        for y in range(opencv_image.shape[0]):
+            for x in range(opencv_image.shape[1]):
+                if labels[y, x] == primary_number:
+                    opencv_image[y, x] = primary_color
+                else:
+                    opencv_image[y, x] = secondary_color
+        # import random
+        # cv2.imwrite(f"./{self.total_debug_path}/square_{random.randint(0, 99999)}.png", opencv_image)       
+        return 1
+    
+    def squares_to_board(self, squares: list[Image.Image]) -> list[list[int]]:
+        """Convert list of square images to board
+
+        Args:
+            squares (list[Image.Image]): List of square images
+
+        Returns:
+            list[list[int]]: Board
+        """
+        
+        board: list[list[int]] = []
+        for y in range(0, 9):
+            line: list[int] = []
+            for x in range(0, 9):
+                line.append(self.square_to_int(squares[y * 9 + x]))
+            board.append(copy.deepcopy(line))
+        return board
+                
     
     def run(self) -> None:
         """Runs the Automator"""
@@ -294,6 +358,8 @@ class SudokuAutomator:
             self, screenshot, board_data
         )
         
+        print(np.matrix(self.squares_to_board(squares)))
+        
 
 if __name__ == "__main__":
     try:
@@ -301,5 +367,5 @@ if __name__ == "__main__":
         automator.run()
     except RuntimeError as re:
         print(f"A runtime error occured: {re}")
-    except Exception as e:
-        print(f"An unexpected error occured: {e}")
+    # except Exception as e:
+    #     print(f"An unexpected error occured: {e}")
