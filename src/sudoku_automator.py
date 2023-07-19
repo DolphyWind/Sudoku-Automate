@@ -8,6 +8,7 @@ from sudoku_solver import SudokuSolver
 import time
 import pytesseract
 import readline
+import copy
 import json
 
 
@@ -200,6 +201,56 @@ class SudokuAutomator:
     def crop_image(self, img: Image.Image, x: int, y: int, width: int, height: int) -> Image.Image:
         return img.crop((x, y, x + width, y + height))
     
+    def get_square_coords(self, board_data: dict[str, int], x_board: int, y_board: int) -> tuple:
+        """Get the top left coordinates of specified square in the coordinate space of the image
+
+        Args:
+            board_data (dict[str, int]): Board data dictionary
+            x_board (int): Horizontal index of the square 
+            y_board (int): Vertical index of the square
+
+        Returns:
+            tuple: x,y coordinate of the given square
+        """
+        square_x = board_data["square_x"]
+        square_y = board_data["square_y"]
+        square_width = board_data["square_width"]
+        square_height = board_data["square_height"]
+        horizontal_gaps = board_data["horizontal_gaps"]
+        vertical_gaps = board_data["vertical_gaps"]
+        
+        return (
+            square_x + (x_board) * square_width + sum(horizontal_gaps[:x_board]),
+            square_y + (y_board) * square_height + sum(vertical_gaps[:y_board]),
+                )
+    
+    def get_square_images(self, screenshot: Image.Image, board_data: dict[str, int]) -> list[Image.Image]:
+        """Get all square images at the given indexes
+
+        Args:
+            screenshot (Image.Image): Screenshot of the game
+            board_data (dict[str, int]): Board data dictionary
+
+        Returns:
+            list[Image.Image]: All 81 squares in a list
+        """
+        
+        square_width = board_data["square_width"]
+        square_height = board_data["square_height"]
+        
+        squares: list[Image.Image] = []
+        for y in range(0, 9):
+            for x in range(0, 9):
+                current_x, current_y = self.get_square_coords(board_data, x, y)
+                square = screenshot.crop((current_x, current_y, current_x + square_width, current_y + square_height))
+                squares.append(square)
+                
+                if self.debug:
+                    pathlib.Path(f"{self.total_debug_path}/squares/").mkdir(exist_ok=True, parents=True)
+                    square.save(f"{self.total_debug_path}/squares/square_{y}_{x}.png")
+        
+        return copy.deepcopy(squares)
+    
     def run(self) -> None:
         """Runs the Automator"""
         time: float = 0.0
@@ -234,6 +285,14 @@ class SudokuAutomator:
                 self, screenshot, board_data["board_x"], board_data["board_y"], board_data["board_width"], board_data["board_height"]
             )
             img.save(f"{self.total_debug_path}/grid.png")
+        
+        time, squares = time_function(
+            SudokuAutomator.get_square_images,
+            time,
+            "Extracting squares...",
+            "All squares are extracted!",
+            self, screenshot, board_data
+        )
         
 
 if __name__ == "__main__":
