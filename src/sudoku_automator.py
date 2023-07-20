@@ -14,6 +14,8 @@ import numpy as np
 from sklearn.cluster import KMeans
 from skimage.metrics import structural_similarity as ssim
 import warnings
+import sys
+import argparse
 warnings.filterwarnings('ignore', message='Number of distinct clusters*')
 
 
@@ -491,10 +493,15 @@ class SudokuAutomator:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="A sudoku solver script that solves a sudoku game on your phone.")
+    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug option. Saves the images on a folder called debug.")
+    args = parser.parse_args()
+    
+    print(args.debug)
     try:
-        automator = SudokuAutomator(True)
+        automator = SudokuAutomator(args.debug)
         automator.run()
     except RuntimeError as re:
         print(f"A runtime error occured: {re}")
-    # except Exception as e:
-    #     print(f"An unexpected error occured: {e}")
+    except Exception as e:
+        print(f"An unexpected error occured: {e}")
