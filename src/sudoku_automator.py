@@ -503,7 +503,6 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug option. Saves the images on a folder called debug.")
     args = parser.parse_args()
     
-    print(args.debug)
     try:
         automator = SudokuAutomator(args.debug)
         automator.run()
