@@ -372,6 +372,13 @@ class SudokuAutomator:
         return board
     
     def solve_on_screen(self, empty_squares: list[tuple[int, int]], solution: list[list[int]], board_data: dict[str, int]) -> None:
+        """Solves the sudoku on your phone
+
+        Args:
+            empty_squares (list[tuple[int, int]]): A list containing the indexes of empty squares
+            solution (list[list[int]]): Solution board
+            board_data (dict[str, int]): Board data dictionary
+        """
         half_square_width = board_data["square_width"] // 2
         half_square_height = board_data["square_height"] // 2
         
