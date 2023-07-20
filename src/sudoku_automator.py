@@ -123,7 +123,6 @@ class SudokuAutomator:
         # Reads the top left coordinate of the board. It asks the user for once. Reads board info,
         # then saves it to a file called "board_data.json". As long as that file exists, 
         # it reads from there in the future.
-        board_x, board_y = 0, 0
         board_width, board_height = 0, 0
         square_x, square_y = 0, 0
         square_width, square_height = 0, 0
@@ -139,44 +138,31 @@ class SudokuAutomator:
                 board_data = json.load(file)
         else:
             while True:
-                xy_coords: str = input("Please enter the top left coordinates of the board, include the border of the board, seperated by a comma: ")
+                xy_coords: str = input("Please enter the top left coordinates of the first square seperated by a comma: ")
                 try:
                     x_str, y_str = xy_coords.split(',')
-                    board_x, board_y = int(x_str), int(y_str)
-                    if board_x < 0 or board_y < 0 or board_x > screenshot.size[0] or board_y > screenshot.size[1]:
+                    square_x, square_y = int(x_str), int(y_str)
+                    if square_x < 0 or square_y < 0 or square_x > screenshot.size[0] or square_y > screenshot.size[1]:
                         raise Exception()
                 except:
                     print("Please enter a valid coordinate!")
                 else:
                     break
             pathlib.Path(self.board_data_filename).touch()
-            
-            top_left_color = screenshot.getpixel((board_x, board_y))
+
+            def is_close_color(c1: tuple, c2: tuple, tol: float) -> bool:
+                square_sum = 0
+                for a, b in zip(c1, c2):
+                    square_sum += (a - b) ** 2
+                return (square_sum**.5) <= tol
             
             def get_size_of_area(img: Image.Image, x: int, y: int, height: bool=False) -> int:
                 size = 0
                 color = img.getpixel((x, y))
-                while img.getpixel((x + size * int(not height), y + size * int(height))) == color:
+                
+                while is_close_color(img.getpixel((x + size * int(not height), y + size * int(height))), color, 5):
                     size += 1
                 return size
-            
-            # Get board dimensions
-            board_width = get_size_of_area(screenshot, board_x, board_y, False)
-            board_height = get_size_of_area(screenshot, board_x, board_y, True)
-            
-            # Find top left coords of the first square
-            for h in range(0, board_height):
-                broke_out = False
-                for w in range(0, board_width):
-                    if screenshot.getpixel((board_x + w, board_y + h)) != top_left_color:
-                        broke_out = True
-                        square_x = board_x + w
-                        square_y = board_y + h
-                        break
-                if broke_out:
-                    break
-            
-            square_top_left_color = screenshot.getpixel((square_x, square_y))
             
             # Get square dimensions
             square_width = get_size_of_area(screenshot, square_x, square_y, False)
@@ -198,6 +184,9 @@ class SudokuAutomator:
                 start_y += size + square_height
                 vertical_gaps.append(size)
             
+            board_width = 9 * square_width + sum(horizontal_gaps)
+            board_height = 9 * square_height + sum(vertical_gaps)
+            
             while True:
                 answer_xy: str = input("Please enter the center position of the first answer button, seperated by comma: ")
                 try:
@@ -218,8 +207,6 @@ class SudokuAutomator:
                     break
             
             board_data = {
-                "board_x": board_x,
-                "board_y": board_y,
                 "board_width": board_width,
                 "board_height": board_height,
                 "square_x": square_x,
@@ -430,7 +417,7 @@ class SudokuAutomator:
                 time,
                 "Cropping grid...",
                 "Cropped grid!",
-                self, screenshot, board_data["board_x"], board_data["board_y"], board_data["board_width"], board_data["board_height"]
+                self, screenshot, board_data["square_x"], board_data["square_y"], board_data["board_width"], board_data["board_height"]
             )
             img.save(f"{self.total_debug_path}/grid.png")
         
