@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 [Dd]ebug/
-board_data.json
+board_data*.json

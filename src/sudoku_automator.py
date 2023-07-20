@@ -14,7 +14,6 @@ import numpy as np
 from sklearn.cluster import KMeans
 from skimage.metrics import structural_similarity as ssim
 import warnings
-import sys
 import argparse
 warnings.filterwarnings('ignore', message='Number of distinct clusters*')
 
