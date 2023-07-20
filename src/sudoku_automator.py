@@ -46,11 +46,12 @@ def time_function(func,
     return t0 + delta_time, result
 
 class SudokuAutomator:
-    def __init__(self, debug=False) -> None:
+    def __init__(self, debug=False, board_data_filename="board_data.json") -> None:
         self.debug: bool = debug
         self.device: Device = None
         self.total_debug_path: str = ""
         self.number_squares: list[np.ndarray] = []
+        self.board_data_filename: str = board_data_filename
         
         self.createDebugFolders()
         self.load_number_squares()
@@ -122,7 +123,6 @@ class SudokuAutomator:
         # Reads the top left coordinate of the board. It asks the user for once. Reads board info,
         # then saves it to a file called "board_data.json". As long as that file exists, 
         # it reads from there in the future.
-        data_file_path = "./board_data.json"
         board_x, board_y = 0, 0
         board_width, board_height = 0, 0
         square_x, square_y = 0, 0
@@ -134,8 +134,8 @@ class SudokuAutomator:
         
         board_data = dict()
         
-        if (pathlib.Path(data_file_path).exists()):
-            with open(data_file_path, "r") as file:
+        if (pathlib.Path(self.board_data_filename).exists()):
+            with open(self.board_data_filename, "r") as file:
                 board_data = json.load(file)
         else:
             while True:
@@ -149,7 +149,7 @@ class SudokuAutomator:
                     print("Please enter a valid coordinate!")
                 else:
                     break
-            pathlib.Path(data_file_path).touch()
+            pathlib.Path(self.board_data_filename).touch()
             
             top_left_color = screenshot.getpixel((board_x, board_y))
             
@@ -232,7 +232,7 @@ class SudokuAutomator:
                 "answer_y": answer_y,
                 "answer_distance": answer_distance,
             }
-            with open(data_file_path, "w") as file:
+            with open(self.board_data_filename, "w") as file:
                 json.dump(board_data, file)
         
         return board_data
@@ -501,10 +501,14 @@ class SudokuAutomator:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="A sudoku solver script that solves a sudoku game on your phone.")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug option. Saves the images on a folder called debug.")
+    parser.add_argument("-f", "--filename", help="The file to read and store board data.")
     args = parser.parse_args()
     
+    if args.filename is None:
+        args.filename = "board_data.json"
+    
     try:
-        automator = SudokuAutomator(args.debug)
+        automator = SudokuAutomator(args.debug, args.filename)
         automator.run()
     except RuntimeError as re:
         print(f"A runtime error occured: {re}")
