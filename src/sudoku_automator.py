@@ -128,6 +128,8 @@ class SudokuAutomator:
         square_width, square_height = 0, 0
         horizontal_gaps = []
         vertical_gaps = []
+        answer_x, answer_y = 0, 0
+        answer_distance = 0
         
         board_data = dict()
         
@@ -195,6 +197,25 @@ class SudokuAutomator:
                 start_y += size + square_height
                 vertical_gaps.append(size)
             
+            while True:
+                answer_xy: str = input("Please enter the center position of the first answer button, seperated by comma: ")
+                try:
+                    answer_xstr, answer_ystr = answer_xy.split(',')
+                    answer_x, answer_y = int(answer_xstr), int(answer_ystr)
+                except:
+                    print("Please enter a valid input!")
+                else:
+                    break
+            
+            while True:
+                answer_dist_str = input("Please enter the distance between two answer buttons: ")
+                try:
+                    answer_distance = int(answer_dist_str)
+                except:
+                    print("Please enter a valid input!")
+                else:
+                    break
+            
             board_data = {
                 "board_x": board_x,
                 "board_y": board_y,
@@ -205,7 +226,10 @@ class SudokuAutomator:
                 "square_width": square_width,
                 "square_height": square_height,
                 "horizontal_gaps": horizontal_gaps,
-                "vertical_gaps": vertical_gaps
+                "vertical_gaps": vertical_gaps,
+                "answer_x": answer_x,
+                "answer_y": answer_y,
+                "answer_distance": answer_distance,
             }
             with open(data_file_path, "w") as file:
                 json.dump(board_data, file)
@@ -345,7 +369,24 @@ class SudokuAutomator:
                 line.append(self.square_to_int(squares[y * 9 + x]))
             board.append(copy.deepcopy(line))
         return board
-                
+    
+    def solve_on_screen(self, empty_squares: list[tuple[int, int]], solution: list[list[int]], board_data: dict[str, int]) -> None:
+        half_square_width = board_data["square_width"] // 2
+        half_square_height = board_data["square_height"] // 2
+        
+        answer_x: int = board_data["answer_x"]
+        answer_y: int = board_data["answer_y"]
+        answer_distance = board_data["answer_distance"]
+        
+        for x, y in empty_squares:
+            answer: int = solution[y][x]
+            square_pos = self.get_square_coords(board_data, x, y)
+            square_pos = square_pos[0] + half_square_width, square_pos[1] + half_square_height
+            
+            answer_pos = answer_x + (answer - 1) * answer_distance , answer_y
+            
+            self.device.shell(f"input tap {square_pos[0]} {square_pos[1]}")
+            self.device.shell(f"input tap {answer_pos[0]} {answer_pos[1]}")
     
     def run(self) -> None:
         """Runs the Automator"""
@@ -413,7 +454,39 @@ class SudokuAutomator:
             "Solved the board!",
             board
         )
-        print(f"Found {len(solved_boards)} solutions.")
+        
+        board_solution: list[list[int]] = None
+        if len(solved_boards) > 1:
+            print(f"Found {len(solved_boards)} solution(s).")
+            print("Please select which solution you want to use:")
+            
+            for i, sb in enumerate(board_solution):
+                print(i, np.matrix(sb))
+            
+            while True:
+                index_str: str = input(">>> ")
+                try:
+                    index = int(index_str)
+                    if index >= len(solved_boards):
+                        print("Please enter a valid number!")
+                        continue
+                except:
+                    print("Please enter a valid number!")
+                else:
+                    break
+            
+        elif len(solved_boards) == 0:
+            raise RuntimeError("Could not find any solutions to given board!")
+        else:
+            board_solution = solved_boards[0]
+        
+        time = time_function(
+            SudokuAutomator.solve_on_screen,
+            time,
+            "Solving the game on your phone...",
+            "Solved the game on your phone!",
+            self, empty_squares, solved_boards[0], board_data
+        )
         
 
 
