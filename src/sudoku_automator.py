@@ -346,6 +346,9 @@ class SudokuAutomator:
                     opencv_image[y, x] = secondary_color
         
         gray_img = cv2.cvtColor(opencv_image, cv2.COLOR_RGB2GRAY)
+        if gray_img.shape != self.number_squares[0].shape:
+            gray_img = cv2.resize(gray_img, self.number_squares[0].shape)
+        
         ssim_list: list[int] = []
         for i in range(0, 9):
             result = ssim(gray_img, self.number_squares[i])
@@ -468,7 +471,7 @@ class SudokuAutomator:
             print(f"Found {len(solved_boards)} solution(s).")
             print("Please select which solution you want to use:")
             
-            for i, sb in enumerate(board_solution):
+            for i, sb in enumerate(solved_boards):
                 print(i, np.matrix(sb))
             
             while True:
